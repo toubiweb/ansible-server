@@ -1,0 +1,30 @@
+version: "3"
+
+networks:
+    webapps: 
+      external: 
+        name: nginx_webapps
+
+services:
+  nginxproxy:
+    container_name: nginxproxy
+{% if config.apps.nginx_proxy.restart %}
+    restart: always
+{% endif %}
+    image: jwilder/nginx-proxy
+    volumes:
+      - {{ config.target.docker_sock }}:/tmp/docker.sock:ro
+      - {{ config.target.system_ssl_certsdir }}:/etc/nginx/certs
+      - {{ app_config_vhost_d_dir }}:/etc/nginx/vhost.d
+      - {{ app_config_conf_d_dir }}:/etc/nginx/conf.d
+      - {{ app_www_dir }}:/etc/nginx/www
+      - {{ app_html_dir }}:/usr/share/nginx/html
+    networks:
+      - webapps
+    ports:
+      - {{ config.apps.nginx_proxy.http_port }}:80
+      - {{ config.apps.nginx_proxy.https_port }}:443
+    labels:
+      - "com.toubiweb.app=nginx-proxy"
+    environment:
+      TZ: Europe/Paris

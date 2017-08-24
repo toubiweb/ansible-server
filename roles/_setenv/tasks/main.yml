@@ -1,0 +1,13 @@
+---
+
+- name: load app.yml configuration
+  include_vars:
+    file: "{{ CONFIG_FILEPATH }}"
+    name: config
+
+- set_fact:
+    local_user: "{{ config.target.local_user }}"
+
+- set_fact:
+    local_user: "{{ ansible_env.USER }}"
+  when: (local_user is undefined) or (local_user is none) or (local_user|trim == '')

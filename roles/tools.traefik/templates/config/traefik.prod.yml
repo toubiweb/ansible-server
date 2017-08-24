@@ -1,0 +1,33 @@
+logLevel = "DEBUG"
+defaultEntryPoints = ["http", "https"]
+
+# WEB interface of Traefik - it will show web page with overview of frontend and backend configurations 
+[web]
+address = ":8080"
+
+# Connection to docker host system (docker.sock)
+[docker]
+domain = "mycoolapp.com"
+watch = true
+# This will hide all docker containers that don't have explicitly  
+# set label to "enable"
+exposedbydefault = false
+
+# Force HTTPS
+[entryPoints]
+  [entryPoints.http]
+  address = ":80"
+    [entryPoints.http.redirect]
+    entryPoint = "https"
+  [entryPoints.https]
+  address = ":443"
+    [entryPoints.https.tls]
+  
+# Let's encrypt configuration
+[acme]
+  email="email@mycoolapp.com"
+  storage="/etc/traefik/acme.json"
+  entryPoint="https"
+  acmeLogging=true
+  onDemand=true
+  OnHostRule=true

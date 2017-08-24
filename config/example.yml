@@ -1,0 +1,20 @@
+target:
+  local_user: root
+  build_dir: /opt/docker/build
+  deploy_dir: /opt/docker/deploy
+  system_ssl_certsdir: /opt/ssl/private
+  docker_sock: /var/run/docker.sock
+apps:
+  traefik:
+    configfile: traefik.dev.yml
+    restart: true
+    nginx_proxy: ~.*\.localhost # to use it behind nginx-proxy
+    ui_port: 8080
+    http_port: 81
+    https_port: 444
+  nginx_proxy:
+    http_port: 80
+    https_port: 443
+    restart: true
+
+    

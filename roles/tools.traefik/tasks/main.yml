@@ -1,0 +1,35 @@
+---
+
+- set_fact:
+    app_name: "traefik"
+
+- set_fact:
+    app_deploy_dir: "{{ config.target.deploy_dir }}/{{ app_name }}"
+
+- set_fact:
+    app_deploy_config_dir: "{{ config.target.deploy_dir }}/{{ app_name }}/config"
+
+- file: path={{ item }} state=directory  owner={{ local_user }}
+  with_items:
+    - "{{ app_deploy_dir }}"
+    - "{{ app_deploy_config_dir }}"
+  
+- template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: "{{ local_user }}"
+    mode: "{{ item.mode }}"
+  with_items:
+    - { src: 'docker/docker-compose.yml', dest: "{{ app_deploy_dir }}/docker-compose.yml", mode: '0644' }
+    - { src: 'docker/deploy.sh', dest: "{{ app_deploy_dir }}/deploy-{{ app_name }}.sh", mode: '0755' }
+    - { src: "config/{{ config.apps.traefik.configfile }}", dest: "{{ app_deploy_config_dir }}/traefik.yml", mode: '0644' }
+
+- name: Create docker network
+  docker_network:
+    name: traefik_webapps
+
+- shell: "{{ app_deploy_dir }}/deploy-{{ app_name }}.sh"
+
+- name: Reload nginx
+  shell: docker exec nginxproxy bash -c "nginx -s reload"
+  when: config.apps.traefik.nginx_proxy

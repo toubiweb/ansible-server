@@ -1,0 +1,9 @@
+---
+- hosts: all
+
+  roles:
+
+    # ALWAYS set env (NEW, from ini files)
+    - { role: _setenv, tags: ['always']  }
+    - { role: tools.traefik, tags: [ 'traefik' ]  }
+    - { role: tools.nginx-proxy, tags: [ 'nginx-proxy' ]  }

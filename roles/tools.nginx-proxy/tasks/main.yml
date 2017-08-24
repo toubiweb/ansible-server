@@ -1,0 +1,43 @@
+---
+
+- set_fact:
+    app_name: "nginx-proxy"
+
+- set_fact:
+    app_deploy_dir: "{{ config.target.deploy_dir }}/{{ app_name }}"
+
+- set_fact:
+    app_scripts_dir: "{{ app_deploy_dir }}/scripts"
+    app_config_dir: "{{ app_deploy_dir }}/config"
+    app_config_vhost_d_dir: "{{ app_deploy_dir }}/config/vhost.d"
+    app_config_conf_d_dir: "{{ app_deploy_dir }}/config/conf.d"
+    app_www_dir: "{{ app_deploy_dir }}/www"
+    app_html_dir: "{{ app_deploy_dir }}/html"
+
+- file: path={{ item }} state=directory  owner={{ local_user }}
+  with_items:
+    - "{{ config.target.system_ssl_certsdir }}"
+    - "{{ app_scripts_dir }}"
+    - "{{ app_config_dir }}"
+    - "{{ app_config_vhost_d_dir }}"
+    - "{{ app_config_conf_d_dir }}"
+    - "{{ app_www_dir }}"
+    - "{{ app_html_dir }}"
+
+- template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: "{{ local_user }}"
+    mode: "{{ item.mode }}"
+  with_items:
+    - { src: 'config/global.proxy.conf', dest: "{{ app_config_conf_d_dir }}/global.proxy.conf", mode: '0644' }
+    - { src: 'config/gzip.conf', dest: "{{ app_config_conf_d_dir }}/gzip.conf", mode: '0644' }
+    - { src: 'docker/docker-compose.yml', dest: "{{ app_deploy_dir }}/docker-compose.yml", mode: '0644' }
+    - { src: 'docker/deploy.sh', dest: "{{ app_deploy_dir }}/deploy-{{ app_name }}.sh", mode: '0755' }
+    - { src: 'scripts/rotate-logs.sh', dest: "{{ app_scripts_dir }}/rotate-logs.sh", mode: '0755' }
+
+- name: Create docker network
+  docker_network:
+    name: nginx_webapps
+
+- shell: "{{ app_deploy_dir }}/deploy-{{ app_name }}.sh"
