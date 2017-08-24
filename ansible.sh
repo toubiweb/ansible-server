@@ -14,6 +14,24 @@ die () {
     exit 1
 }
 
+# https://stackoverflow.com/a/21189044/1097926
+function parse_yaml {
+   local prefix=$2
+   local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
+   sed -ne "s|^\($s\):|\1|" \
+        -e "s|^\($s\)\($w\)$s:$s[\"']\(.*\)[\"']$s\$|\1$fs\2$fs\3|p" \
+        -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
+   awk -F$fs '{
+      indent = length($1)/2;
+      vname[indent] = $2;
+      for (i in vname) {if (i > indent) {delete vname[i]}}
+      if (length($3) > 0) {
+         vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
+         printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, $2, $3);
+      }
+   }'
+}
+
 function contains() {
     local n=$#
     local value=${!n}
@@ -61,7 +79,7 @@ if [ -z $role ]
 then
     
     echo ""
-    PS3="Select a role:"
+    PS3="Please select a role:"
     
     select role in "${roles[@]}"
     do
@@ -79,18 +97,16 @@ fi
 if [ -z $config ]
 then
     
+    echo ""
     prompt="Please select a configuration file:"
-    options=( $(find $CONFIG_DIR -maxdepth 1 -name "*.yml" -print0 | xargs -0) )
+    options=( $(find $CONFIG_DIR -maxdepth 1 -name "*.yml" -printf "%f\n") )
     
     PS3="$prompt "
-    select CONFIG_FILEPATH in "${options[@]}" "Quit" ; do
+    select config in "${options[@]}" "Quit" ; do
         if (( REPLY == 1 + ${#options[@]} )) ; then
             exit
             
             elif (( REPLY > 0 && REPLY <= ${#options[@]} )) ; then
-            
-            CONFIG_DIR_SIZE=${#CONFIG_DIR}
-            config="${CONFIG_FILEPATH:$CONFIG_DIR_SIZE+1}"
             
             break
             
@@ -98,10 +114,9 @@ then
             echo "Invalid option. Try another one."
         fi
     done
-else
-    CONFIG_FILEPATH="$CONFIG_DIR/$config"
 fi
 
+CONFIG_FILEPATH="$CONFIG_DIR/$config"
 
 ANSIBLE_TAGS="$role"
 ANSIBLE_EXTRA_VARS="CONFIG_FILEPATH=$CONFIG_FILEPATH"
@@ -114,23 +129,26 @@ echo ""
 echo "###################################################################################"
 echo ""
 
-if [ "$config" == "localhost.yml" ]
+## parse and eval yaml file
+eval $(parse_yaml config/$config)
+
+if [ "$target_machine" == "localhost" ]
 then
-    env=dev
-else
-    env=prod
-fi
-if [ "$env" == "prod" ];
-then
-    ansible-playbook $verbose ansible.cookbook.yml -l $target --tags "$ANSIBLE_TAGS" --ask-become-pass --extra-vars "$ANSIBLE_EXTRA_VARS"
-else
     echo ""
-    echo "[dev]"
+    echo "[LOCAL MACHINE]"
     echo ""
     set -x
     sudo ansible-playbook $verbose -i "localhost," -c local $BASE_DIR/ansible.cookbook.yml --verbose --tags "$ANSIBLE_TAGS" --extra-vars "$ANSIBLE_EXTRA_VARS"
     set +x
+else
+    echo ""
+    echo "[REMOTE SERVER]"
+    echo "$target_machine"
+    echo ""
+    set -x
+    ansible-playbook $verbose ansible.cookbook.yml -l $target_machine --tags "$ANSIBLE_TAGS" --ask-become-pass --extra-vars "$ANSIBLE_EXTRA_VARS"
 fi
+
 echo ""
 echo "###################################################################################"
 echo ""

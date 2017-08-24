@@ -27,14 +27,14 @@ Then choose a role:
 ```bash
 1) traefik
 2) nginx-proxy
-Select a role:
+Please select a role:
 ```
 
 And a configuration file:
 ```bash
-1) /config/example.yml
-2) /config/localhost.yml
-3) /config/prod.yml
+1) example.yml
+2) localhost.yml
+3) prod.yml
 4) Quit
 Please select a configuration file: 
 ```

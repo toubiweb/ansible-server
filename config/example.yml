@@ -1,4 +1,5 @@
 target:
+  machine: localhost
   local_user: root
   build_dir: /opt/docker/build
   deploy_dir: /opt/docker/deploy
